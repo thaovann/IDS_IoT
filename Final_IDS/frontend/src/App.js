@@ -1,10 +1,9 @@
 import React from "react";
-import IDSInterface from "./components/IDSInterface";
+import IDSFrontend from "./IDSFrontend";
+import "./App.css";
 
-export default function App() {
-  return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-center">
-      <IDSInterface />
-    </div>
-  );
+function App() {
+  return <IDSFrontend />;
 }
+
+export default App;

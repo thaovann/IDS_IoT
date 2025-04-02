@@ -17,9 +17,9 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 executor = ThreadPoolExecutor(max_workers=4)
 lock = threading.Lock()
 
-OUTPUT_DIR = r"C:\Users\admin\OneDrive - Hanoi University of Science and Technology\Pictures\Desktop\VANN\IDS_IoT\Final_IDS/pcap_splits"
-CSV_OUTPUT_DIR = r"C:\Users\admin\OneDrive - Hanoi University of Science and Technology\Pictures\Desktop\VANN\IDS_IoT\Final_IDS/csv_cicflowmeter"
-CICFLOWMETER_DIR = r"C:\Users\admin\OneDrive - Hanoi University of Science and Technology\Pictures\Desktop\VANN\IDS_IoT\CICFlowMeter-4.0\bin"
+OUTPUT_DIR = r"C:\Desktop\VANN\IDS_IoT\Final_IDS/pcap_splits"
+CSV_OUTPUT_DIR = r"C:\Desktop\VANN\IDS_IoT\Final_IDS/csv_cicflowmeter"
+CICFLOWMETER_DIR = r"C:\Desktop\VANN\IDS_IoT\CICFlowMeter-4.0\bin"
 ALERT_DIR = os.path.join(OUTPUT_DIR, "alerts")
 CFM_PATH = os.path.join(CICFLOWMETER_DIR, "cfm.bat")
 CHUNK_SIZE = 5000
@@ -29,7 +29,6 @@ packet_count = 0
 packet_buffer = []
 file_index = 0
 
-# Load AI model
 try:
     MODEL = load_model("Final_IDS/Model/autoencoder.h5")
     SCALER = joblib.load("Final_IDS/Model/scaler.pkl")
@@ -80,7 +79,6 @@ def aggregate_csv_features(csv_file):
             "Idle Std": ["mean"],
         }
 
-        # Check for missing columns
         available_cols = [
             col for col in selected_features.keys() if col in data.columns
         ]
@@ -88,8 +86,6 @@ def aggregate_csv_features(csv_file):
             missing = set(selected_features.keys()) - set(available_cols)
             print(f"⚠ Missing columns: {missing}")
             return None
-
-        # Aggregate features
         aggregated = {
             f"{col}_{func}": data[col].agg(func)
             for col in available_cols
@@ -148,32 +144,29 @@ def handle_alert(predictions, buffer, index):
 
 def process_packets(buffer, index):
     """Process packet buffer and detect intrusions"""
-    # Create output directories if they don't exist
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
 
-    # Save packet buffer to pcap
     pcap_file = os.path.join(OUTPUT_DIR, f"capture_{index}.pcap")
     wrpcap(pcap_file, buffer)
     print(f"📦 Saved: {pcap_file}")
 
-    # Extract features
+    
     csv_file = extract_feature_by_CICFlowmeter(pcap_file, CSV_OUTPUT_DIR)
     if not csv_file:
         return
 
-    # Aggregate features
+    
     aggregated = aggregate_csv_features(csv_file)
     if aggregated is None:
         return
 
-    # Detect anomalies
     predictions = detect_intrusion(aggregated.values)
     print("predictions", predictions)
     if predictions is not None:
         handle_alert(predictions, buffer, index)
 
-    # Cleanup temporary files
+
     for f in [pcap_file, csv_file]:
         try:
             if os.path.exists(f):
@@ -191,16 +184,15 @@ def packet_callback(packet):
         packet_count += 1
 
         if packet_count >= CHUNK_SIZE:
-            # Process the current buffer in a separate thread
+            
             current_buffer = packet_buffer.copy()
             current_index = file_index
             file_index += 1
 
-            # Reset buffer and counter
+           
             packet_buffer.clear()
             packet_count = 0
 
-            # Submit for processing
             executor.submit(process_packets, current_buffer, current_index)
 
 
@@ -213,7 +205,6 @@ def get_alerts():
 
 
 if __name__ == "__main__":
-    # Create necessary directories
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(CSV_OUTPUT_DIR, exist_ok=True)
     os.makedirs(ALERT_DIR, exist_ok=True)
